@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fermentation Data Form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h2>Predict pH after Fermentation</h2>
+            <form id="prediction-form" method="POST">
+                <div class="form-group">
+                    <label for="ph_before">pH Before Fermentation:</label>
+                    <input type="number" step="0.01" id="ph_before" name="ph_before" required>
+                </div>
+                <div class="form-group">
+                    <label for="temperature">Temperature (°C):</label>
+                    <input type="number" step="0.1" id="temperature" name="temperature" required>
+                </div>
+                <div class="form-group">
+                    <label for="time">Time (hours):</label>
+                    <input type="number" id="time" name="time" required>
+                </div>
+                <div class="form-group">
+                    <label for="fruit">Fruit Type:</label>
+                    <select id="fruit" name="fruit" required>
+                        <option value="">Select a fruit</option>
+                        <option value="Blueberry">Blueberry</option>
+                        <option value="Lingonberry">Lingonberry</option>
+                        <option value="Black currant">Black currant</option>
+                        <option value="Sea buckthorn">Sea buckthorn</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sugar">Sugar (g/L):</label>
+                    <input type="number" id="sugar" name="sugar" required>
+                </div>
+                <div class="form-group">
+                    <label for="aeration">Aeration (%O2):</label>
+                    <input type="number" step="0.1" id="aeration" name="aeration" required>
+                </div>
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+        </div>
+
+        <!-- Container to display the predicted pH -->
+        <div class="prediction-container" id="prediction-result">
+            <h2>Predicted pH (1st Model): <span id="predicted-ph-1st">N/A</span></h2>
+            <h2>Predicted pH (2nd Model): <span id="predicted-ph-2nd">N/A</span></h2>
+        </div>
+    </div>
+    
+    <script>
+        // Handle form submission
+        document.getElementById('prediction-form').onsubmit = function(e) {
+            e.preventDefault();  // Prevent default form submission
+            
+            const formData = new FormData(e.target);
+            const data = {
+                ph_before: formData.get('ph_before'),
+                temperature: formData.get('temperature'),
+                time: formData.get('time'),
+                fruit: formData.get('fruit'),
+                sugar: formData.get('sugar'),
+                aeration: formData.get('aeration')
+            };
+    
+            // Send the data to the server for prediction
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.predicted_pH_linear) {
+                    // Round the predicted pH to 2 decimal places before displaying it
+                    document.getElementById('predicted-ph-1st').innerText = parseFloat(data.predicted_pH_linear).toFixed(2);
+                }
+                if (data.predicted_pH_boost) {
+                    document.getElementById('predicted-ph-2nd').innerText = parseFloat(data.predicted_pH_boost).toFixed(2);
+                }
+                if (data.error) {
+                    document.getElementById('predicted-ph-1st').innerText = `Error: ${data.error}`;
+                    document.getElementById('predicted-ph-2nd').innerText = `Error: ${data.error}`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('predicted-ph-1st').innerText = `Error: ${error}`;
+                document.getElementById('predicted-ph-2nd').innerText = `Error: ${error}`;
+            });
+        };
+    </script>
+</body>
+</html>
